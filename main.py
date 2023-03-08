@@ -1,8 +1,7 @@
-from ImageCode import ImageCoder as Code
-from ImageCode import ImageDecoder as Decode
+from ImageCodeColor import ImageCoder as Code
+from ImageCodeColor import ImageDecoder as Decode
 
-# code = Code("Hello World")
-# code.generateImage()
+code = Code("Hello World Color Version! I can fit much more")
+code.generateImage(filename="helloworldcolor.png")
 
-decode = Decode("helloworld.png")
-
+# decode = Decode("imgs/helloworld.png")

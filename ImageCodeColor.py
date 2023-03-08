@@ -4,21 +4,21 @@ import cv2
 from ReedSolomon import ReedSolomon as RS
 
 PIXELS_PER_BLOCK = 20
-BLOCK_WIDTH = 4
+BLOCK_WIDTH = 2
 BLOCK_HEIGHT = 2
 ERROR_CORRECTION_BYTES = 16
 SIZE = 16
 
 COLOR_MAPPING = {
-    "R": (255, 0, 0),
-    "L": (0, 0, 255),
-    "B": (0, 0, 0),
-    "W": (255, 255, 255),
+    0: (255, 255, 255), # White
+    1: (0, 0, 0),       # Black
+    2: (255, 0, 0),     # Red
+    3: (0, 0, 255),     # Blue
 }
 
 class ImageCoder:
     def __init__(self, content="", size=SIZE, pixelsPerBlock=PIXELS_PER_BLOCK, blockWidth=BLOCK_WIDTH, blockHeight=BLOCK_HEIGHT, errorCorrectionBytes=ERROR_CORRECTION_BYTES):
-        self.grid = np.zeros((size, size), dtype=int)
+        self.grid = np.zeros((size, size, 3), dtype=int)
         self.pixelsPerBlock = pixelsPerBlock
         self.size = size
         self.content = content
@@ -33,34 +33,42 @@ class ImageCoder:
             exit(1)
 
         self.generateCode()
-    
-    def generateBinaryFromInt(self, val, width=8):
-        """
-        Examples:
-            5 ->  00000101
-            10 -> 00001010
-            15 -> 00001111
-        """
-        binary_str = bin(val)[2:]  # Remove the '0b' prefix from the binary string
-        binary_str = binary_str.zfill(width)  # Pad the string with leading zeros
-        return binary_str
 
+    def convertBase10ToBaseN(self, val, base=4, width=4):
+        """
+        Convert a base 10 integer to a base N integer with a given width.
+        Padding is done with leading zeros.
+        Examples:
+            5 ->  0011
+            10 -> 0022
+            200 -> 3020
+        """
+        if val == 0:
+            return "0" * width
+        digits = []
+        while val > 0:
+            val, remainder = val // base, val % base
+            digits.append(str(remainder))
+            
+        while len(digits) < width:
+            digits.append('0')
+            
+        return ''.join(digits[::-1])
 
     def generateBlock(self, val):
         width = self.blockWidth
         height = self.blockHeight
 
-        binary_str = self.generateBinaryFromInt(val, width * height)
+        base_str = self.convertBase10ToBaseN(val, base=4, width=width * height)
         index = 0
 
-        # Convert integer to height x width block
-        block = np.zeros((height, width), dtype=int)
+        # Convert integer to height x width x 3 block
+        block = np.zeros((height, width, 3), dtype=int)
         for row in range(height):
             for column in range(width):
-                block[row, column] = binary_str[index]
+                block[row, column] = COLOR_MAPPING[int(base_str[index])]
                 index += 1
         return block
-        
     
     def generateCode(self):
         width = self.blockWidth
@@ -81,7 +89,7 @@ class ImageCoder:
         # Add error correction bytes
         integers = RS.encode(integers, self.errorCorrectionBytes, intArray=True)
         
-        # Segment grid into height x width blocks which will store the binary representation of the UTF-8 integer
+        # Segment grid into height x width blocks which will store the base 4 representation of the UTF-8 integer
         for integer in integers:
             block = self.generateBlock(integer)
             self.grid[y:y+height, x:x+width] = block
@@ -89,60 +97,17 @@ class ImageCoder:
             if (x >= self.size):
                 x = 0
                 y += height
-                
-    def __str__(self):
-        return self.generateGridLines()
-
-    
-    def generateGridLines(self):
-        """
-        Returns a string representation of the grid of size=8, width=4, height=2 separated by a line.
-        -------------------
-        0 0 0 0 | 0 0 0 0 |
-        0 0 0 0 | 0 0 0 0 |
-        -------------------
-        0 0 0 0 | 0 0 0 0 |
-        0 0 0 0 | 0 0 0 0 |
-        -------------------
-        0 0 0 0 | 0 0 0 0 |
-        0 0 0 0 | 0 0 0 0 |
-        -------------------
-        """
-
-        width = self.blockWidth
-        height = self.blockHeight
-        
-        # Create the horizontal lines
-        horiz_line = ' -' * (self.size - 1) + '\n'
-        out = horiz_line
-
-        # Create the vertical lines and values
-        for row in range(self.size):
-            for column in range(self.size):
-                if (column % width == 0):
-                    out += " | "
-                out += str(self.grid[row, column])
-            out += " |\n"
-            if (row % height == height - 1):
-                out += horiz_line
-        
-        return out
-
-    def generateBorder(self, img: np.ndarray, intensity=0, alternate=False):
+      
+    def generateBorder(self, img: np.ndarray, intensity=0):
         """
         Generates a border around the image. With alignment on the top left.
         """
         img_width = img.shape[1]
         img_height = img.shape[0]
 
-        new_img = np.ones((img_height + 2 * self.pixelsPerBlock, img_width + 2 * self.pixelsPerBlock), dtype=np.uint8) * intensity
+        new_img = np.ones((img_height + 2 * self.pixelsPerBlock, img_width + 2 * self.pixelsPerBlock, 3), dtype=np.uint8) * intensity
         new_img[self.pixelsPerBlock:img_height + self.pixelsPerBlock, self.pixelsPerBlock:img_width + self.pixelsPerBlock] = img
 
-        if (alternate):
-            for i in range(img_width // self.pixelsPerBlock):
-                if i % 2 == 0 and i != 0 and i != self.pixelsPerBlock - 1:
-                    new_img[0:self.pixelsPerBlock, i * self.pixelsPerBlock: (i + 1) * self.pixelsPerBlock] = 255 - intensity
-        
         return new_img
 
     def generateBorders(self, img:np.ndarray):
@@ -157,30 +122,33 @@ class ImageCoder:
 
         return new_img
 
-    def generateImage(self, filename="image.png"):
+    def increaseImageSize(self, img:np.ndarray, factor:int):
         """
-        Generates black and white image from the grid.
+        Increases the size of the color image (n, n, 3) by a factor.
         """
+        img_width = img.shape[1]
+        img_height = img.shape[0]
 
-        img_width = self.size * self.pixelsPerBlock
-        img_height = self.size * self.pixelsPerBlock
-
-        # Create a new image from numpy
-        img = np.zeros((img_height, img_width), dtype=np.uint8)
+        new_img = np.zeros((img_height * factor, img_width * factor, 3), dtype=np.uint8)
         for row in range(img_height):
             for column in range(img_width):
-                img[row, column] = self.grid[row // self.pixelsPerBlock, column // self.pixelsPerBlock] * 255
-            
+                new_img[row * factor:(row + 1) * factor, column * factor:(column + 1) * factor] = img[row, column]
+        return new_img
+
+    def generateImage(self, filename="image.png"):
+        """
+        Generates color image from the grid.
+        """
+
+        img = self.increaseImageSize(self.grid, factor=self.pixelsPerBlock)
+        
         print("Image Shape:", img.shape)
         
-        # Flip black and white
-        img = 255 - img
-
         # Generate border
         img = self.generateBorders(img)
         
         # Show the image
-        plt.imshow(img, cmap='gray')
+        plt.imshow(img)
         plt.show()
 
         # Save the image
