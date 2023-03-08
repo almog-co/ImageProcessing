@@ -1,9 +1,16 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import cv2
 from ReedSolomon import ReedSolomon as RS
 
+PIXELS_PER_BLOCK = 20
+BLOCK_WIDTH = 4
+BLOCK_HEIGHT = 2
+ERROR_CORRECTION_BYTES = 16
+SIZE = 16
+
 class ImageCoder:
-    def __init__(self, content="", size=16, pixelsPerBlock=20, blockWidth=4, blockHeight=2, errorCorrectionBytes=16):
+    def __init__(self, content="", size=SIZE, pixelsPerBlock=PIXELS_PER_BLOCK, blockWidth=BLOCK_WIDTH, blockHeight=BLOCK_HEIGHT, errorCorrectionBytes=ERROR_CORRECTION_BYTES):
         self.grid = np.zeros((size, size), dtype=int)
         self.pixelsPerBlock = pixelsPerBlock
         self.size = size
@@ -168,7 +175,70 @@ class ImageCoder:
         # Show the image
         plt.imshow(img, cmap='gray')
         plt.show()
+
+        # Save the image
+        cv2.imwrite(filename, img)
         
+class ImageDecoder:
+    def __init__(self, imgFile, size=SIZE, pixelsPerBlock=PIXELS_PER_BLOCK, blockWidth=BLOCK_WIDTH, blockHeight=BLOCK_HEIGHT, errorCorrectionBytes=ERROR_CORRECTION_BYTES):
+        img = cv2.imread(imgFile)
+
+        # Check if image is valid
+        if (img is None):
+            print("Image is invalid")
+            exit(1)
+
+        self.img = img
+        self.size = size
+        self.pixelsPerBlock = pixelsPerBlock
+        self.blockWidth = blockWidth
+        self.blockHeight = blockHeight
+        self.errorCorrectionBytes = errorCorrectionBytes
+
+        # Parse image from left to right
+        self.grid = np.zeros((size, size), dtype=int)
+        self.parseImage()
+    
+    def parseImage(self):
+        """
+        Parses the image from left to right and top to bottom.
+        """
+        img_width = self.img.shape[1]
+        img_height = self.img.shape[0]
+
+        # Run edge detection 
+        edges = cv2.Canny(self.img, 100, 200)
+
+        # Find contours
+        contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        # Sort contours by area. Find index where there is a big jump in area
+        delta = 0
+        boundingCountor = None
+        contours = sorted(contours, key=cv2.contourArea, reverse=True)
+        for i in range(len(contours) - 1):
+            if (cv2.contourArea(contours[i]) == 0):
+                continue
+            delta = (cv2.contourArea(contours[i]) - cv2.contourArea(contours[i + 1])) / cv2.contourArea(contours[i])
+            print(delta)
+            if (delta > 0.5):
+                boundingCountor = contours[i]
+                break
+        
+        # Get the bounding box of the contour
+        x, y, w, h = cv2.boundingRect(boundingCountor)
+
+        # Use for report!
+        # print(len(contours))
+        # cv2.drawContours(self.img, contours, -1, (0, 255, 0), 2)
+
+        # Crop the image
+        self.img = self.img[y:y + h, x:x + w]
+
+        # Show the image
+        plt.imshow(self.img)
+        plt.show()
+
 
         
 

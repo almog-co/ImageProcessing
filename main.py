@@ -1,8 +1,8 @@
 from ImageCode import ImageCoder as Code
+from ImageCode import ImageDecoder as Decode
 
-code = Code("Hello World")
+# code = Code("Hello World")
+# code.generateImage()
 
-#print(code.generate3x3Block(5))
-#print(code)
-code.generateImage()
+decode = Decode("helloworld.png")
 
