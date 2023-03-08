@@ -199,6 +199,51 @@ class ImageDecoder:
         self.grid = np.zeros((size, size), dtype=int)
         self.parseImage()
     
+    def drawCubeFromCenter(self, img, row, col, size):
+        """
+        Draws bright green cube from the center of the point (row, col) with size=size.
+        """
+        half_size = size // 2
+        img[row - half_size:row + half_size, col - half_size:col + half_size] = (0, 255, 0)
+    
+    def getCubeFromCenter(self, img, row, col, size):
+        """
+        Returns a cube from the center of the point (row, col) with size=size.
+        """
+        half_size = size // 2
+        return img[row - half_size:row + half_size, col - half_size:col + half_size]
+
+    def getRectangleFromTopLeft(self, img, row, col, width, height):
+        """
+        Returns a rectangle from the top left of the point (row, col) with width and height.
+        """
+        return img[row:row + height, col:col + width]
+
+    def decodeBlock(self, block):
+        """
+        Decodes the block and returns the decoded data as an integer.
+        Top left is most significant bit. Bottom right is least significant bit.
+        """
+        bits = []
+        for row in range(block.shape[0]):
+            for col in range(block.shape[1]):
+                bits.append(block[row, col])
+        
+        # Convert bits to integer
+        return int("".join(map(str, bits)), 2)
+
+    
+    def decodeDataArray(self, data):
+        """
+        Decodes the 2D byte data array and returns the decoded data as an array of integers.
+        """
+        b = []
+        for row in range(0, data.shape[0], self.blockHeight):
+            for col in range(0, data.shape[1], self.blockWidth):
+                block = self.getRectangleFromTopLeft(data, row, col, self.blockWidth, self.blockHeight)
+                b.append(self.decodeBlock(block))
+        return b
+
     def parseImage(self):
         """
         Parses the image from left to right and top to bottom.
@@ -214,19 +259,18 @@ class ImageDecoder:
 
         # Sort contours by area. Find index where there is a big jump in area
         delta = 0
-        boundingCountor = None
+        boundingCountorIndex = None
         contours = sorted(contours, key=cv2.contourArea, reverse=True)
         for i in range(len(contours) - 1):
             if (cv2.contourArea(contours[i]) == 0):
                 continue
             delta = (cv2.contourArea(contours[i]) - cv2.contourArea(contours[i + 1])) / cv2.contourArea(contours[i])
-            print(delta)
             if (delta > 0.5):
-                boundingCountor = contours[i]
+                boundingCountorIndex = i
                 break
         
         # Get the bounding box of the contour
-        x, y, w, h = cv2.boundingRect(boundingCountor)
+        x, y, w, h = cv2.boundingRect(contours[boundingCountorIndex])
 
         # Use for report!
         # print(len(contours))
@@ -234,6 +278,54 @@ class ImageDecoder:
 
         # Crop the image
         self.img = self.img[y:y + h, x:x + w]
+
+        # Get size of each block
+        edges = cv2.Canny(self.img, 100, 200)
+        contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours = [contour for contour in contours if abs(cv2.boundingRect(contour)[2] - cv2.boundingRect(contour)[3]) < 2]
+        contours = sorted(contours, key=cv2.contourArea, reverse=True)
+        medianContour = contours[len(contours) // 2]
+        x, y, w, h = cv2.boundingRect(medianContour)
+        width = w - 1
+        # numBlocks = self.img.shape[0] // width
+        numBlocks = self.size + 2
+        
+        # Visualize the median contour - USE FOR REPORT
+        # cv2.drawContours(self.img, [medianContour], -1, (0, 255, 0), 2)
+
+        print("Block size:", width)
+        print("Number of blocks:", numBlocks)
+
+        # Starts at 1 to skip the border. Go to middle of each block
+        data = np.zeros((numBlocks - 2, numBlocks - 2), dtype=int)
+        row, col = int(1.5 * width), int(1.5 * width)
+        for i in range(numBlocks - 2):
+            for j in range(numBlocks - 2):
+                # Get median color of the 5x5 block from (row, col)
+                median = np.median(self.img[row - 2:row + 2, col - 2:col + 2])
+                data[i, j] = 0 if median > 127 else 1
+                
+                # Use for report!
+                # self.drawCubeFromCenter(self.img, row, col, 5)
+
+                col += width
+            col = int(1.5 * width)
+            row += width
+        
+        # Decode the data
+        integerData = self.decodeDataArray(data)
+        decodedData = RS.decode(integerData, self.errorCorrectionBytes)
+        
+        # Start from end of decoded data and remove padding
+        while (decodedData[-1] == 0):
+            decodedData.pop()
+        msgLength = decodedData.pop()
+
+        # Convert to UTF-8 string
+        decodedData = "".join(map(chr, decodedData))
+
+        # print(data)
+        print(decodedData)
 
         # Show the image
         plt.imshow(self.img)
