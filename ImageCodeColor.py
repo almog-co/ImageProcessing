@@ -330,6 +330,10 @@ class ImageDecoder:
         # Decode the data
         integerData = self.decodeDataArray(data)
         decodedData = RS.decode(integerData, self.errorCorrectionBytes)
+
+        if (decodedData == None):
+            print("ERROR: Could not decode data!")
+            return
         
         # Start from end of decoded data and remove padding
         while (decodedData[-1] == 0):
