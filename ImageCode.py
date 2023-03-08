@@ -1,17 +1,21 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from ReedSolomon import ReedSolomon as RS
 
-class ImageCode:
-    def __init__(self, content="", size=16, pixelsPerBlock=20, blockWidth=4, blockHeight=2):
+class ImageCoder:
+    def __init__(self, content="", size=16, pixelsPerBlock=20, blockWidth=4, blockHeight=2, errorCorrectionBytes=16):
         self.grid = np.zeros((size, size), dtype=int)
         self.pixelsPerBlock = pixelsPerBlock
         self.size = size
         self.content = content
         self.blockWidth = blockWidth
         self.blockHeight = blockHeight
+        self.errorCorrectionBytes = errorCorrectionBytes
+        self.maximumAvailableBytes= (size * size) // (blockWidth * blockHeight)
+        self.maximumMessageLength = self.maximumAvailableBytes - self.errorCorrectionBytes - 1
         
-        if (len(content) > size * size):
-            print("Content is too long for the grid size!")
+        if (len(content) > self.maximumMessageLength):
+            print("Content is too long for the grid size! Must be less than", self.maximumMessageLength, "bytes.")
             exit(1)
 
         self.generateCode()
@@ -51,7 +55,17 @@ class ImageCode:
         # Convert letter to UTF-8 integer
         x, y = 0, 0
         integers = [ord(letter) for letter in self.content]
-        print(integers)
+        print("Integers Before Padding:", integers)
+
+        # Last integer is the length of the message. After that, pad with 0s until the end of the grid with error correction bytes
+        integers.append(len(self.content))
+        while (len(integers) + self.errorCorrectionBytes < self.maximumAvailableBytes):
+            integers.append(0)
+        
+        print("Integers After Padding:", integers)
+      
+        # Add error correction bytes
+        integers = RS.encode(integers, self.errorCorrectionBytes, intArray=True)
         
         # Segment grid into height x width blocks which will store the binary representation of the UTF-8 integer
         for integer in integers:
