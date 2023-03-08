@@ -16,6 +16,13 @@ COLOR_MAPPING = {
     3: (0, 0, 255),     # Blue
 }
 
+COLOR_MAPPING_LABELS = {
+    "White": 0,
+    "Black": 1,
+    "Red": 2,
+    "Blue": 3,
+}
+
 class ImageCoder:
     def __init__(self, content="", size=SIZE, pixelsPerBlock=PIXELS_PER_BLOCK, blockWidth=BLOCK_WIDTH, blockHeight=BLOCK_HEIGHT, errorCorrectionBytes=ERROR_CORRECTION_BYTES):
         self.grid = np.zeros((size, size, 3), dtype=int)
@@ -194,7 +201,21 @@ class ImageDecoder:
         """
         return img[row:row + height, col:col + width]
 
-    def decodeBlock(self, block):
+    def convertBaseNtoBase10(self, val, base=4):
+        """
+        Convert a base N integer to a base 10 integer.
+        Examples:
+            0011 -> 5
+            0022 -> 10
+            3020 -> 200
+        """
+        val = str(val)
+        base10 = 0
+        for digit in val:
+            base10 = base10 * base + int(digit)
+        return base10
+
+    def decodeBlock(self, block, base=4):
         """
         Decodes the block and returns the decoded data as an integer.
         Top left is most significant bit. Bottom right is least significant bit.
@@ -205,10 +226,10 @@ class ImageDecoder:
                 bits.append(block[row, col])
         
         # Convert bits to integer
-        return int("".join(map(str, bits)), 2)
+        return self.convertBaseNtoBase10("".join([str(bit) for bit in bits]), base=base)
 
     
-    def decodeDataArray(self, data):
+    def decodeDataArray(self, data, base=4):
         """
         Decodes the 2D byte data array and returns the decoded data as an array of integers.
         """
@@ -277,11 +298,30 @@ class ImageDecoder:
         for i in range(numBlocks - 2):
             for j in range(numBlocks - 2):
                 # Get median color of the 5x5 block from (row, col)
-                median = np.median(self.img[row - 2:row + 2, col - 2:col + 2])
-                data[i, j] = 0 if median > 127 else 1
+                block = self.getCubeFromCenter(self.img, row, col, 5)
+                median = np.median(block, axis=(0, 1))                
+                # If all channels are above 128, then it is white
+                if (median[0] > 128 and median[1] > 128 and median[2] > 128):
+                    data[i, j] = COLOR_MAPPING_LABELS["White"]
+
+                # If all channels are below 128, then it is black
+                elif (median[0] < 128 and median[1] < 128 and median[2] < 128):
+                    data[i, j] = COLOR_MAPPING_LABELS["Black"]
+
+                # If red is above 128, then it is red
+                elif (median[0] > 128):
+                    data[i, j] = COLOR_MAPPING_LABELS["Red"]
+
+                # If blue is above 128, then it is blue
+                elif (median[2] > 128):
+                    data[i, j] = COLOR_MAPPING_LABELS["Blue"]
+
+                else:
+                    data[i, j] = 0
+                    print("ERROR: Unknown color!")
                 
                 # Use for report!
-                # self.drawCubeFromCenter(self.img, row, col, 5)
+                self.drawCubeFromCenter(self.img, row, col, 5)
 
                 col += width
             col = int(1.5 * width)
