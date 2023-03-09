@@ -188,7 +188,7 @@ class ImageCoder:
         
 class ImageDecoder:
     def __init__(self, imgFile, size=SIZE, pixelsPerBlock=PIXELS_PER_BLOCK, blockWidth=BLOCK_WIDTH, blockHeight=BLOCK_HEIGHT, errorCorrectionBytes=ERROR_CORRECTION_BYTES):
-        img = cv2.imread(imgFile)
+        img = imgFile
 
         # Check if image is valid
         if (img is None):
@@ -255,36 +255,36 @@ class ImageDecoder:
         """
         Parses the image from left to right and top to bottom.
         """
-        img_width = self.img.shape[1]
-        img_height = self.img.shape[0]
+        # img_width = self.img.shape[1]
+        # img_height = self.img.shape[0]
 
-        # Run edge detection 
-        edges = cv2.Canny(self.img, 100, 200)
+        # # Run edge detection 
+        # edges = cv2.Canny(self.img, 100, 200)
 
-        # Find contours
-        contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        # # Find contours
+        # contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        # Sort contours by area. Find index where there is a big jump in area
-        delta = 0
-        boundingCountorIndex = None
-        contours = sorted(contours, key=cv2.contourArea, reverse=True)
-        for i in range(len(contours) - 1):
-            if (cv2.contourArea(contours[i]) == 0):
-                continue
-            delta = (cv2.contourArea(contours[i]) - cv2.contourArea(contours[i + 1])) / cv2.contourArea(contours[i])
-            if (delta > 0.5):
-                boundingCountorIndex = i
-                break
+        # # Sort contours by area. Find index where there is a big jump in area
+        # delta = 0
+        # boundingCountorIndex = None
+        # contours = sorted(contours, key=cv2.contourArea, reverse=True)
+        # for i in range(len(contours) - 1):
+        #     if (cv2.contourArea(contours[i]) == 0):
+        #         continue
+        #     delta = (cv2.contourArea(contours[i]) - cv2.contourArea(contours[i + 1])) / cv2.contourArea(contours[i])
+        #     if (delta > 0.5):
+        #         boundingCountorIndex = i
+        #         break
         
-        # Get the bounding box of the contour
-        x, y, w, h = cv2.boundingRect(contours[boundingCountorIndex])
+        # # Get the bounding box of the contour
+        # x, y, w, h = cv2.boundingRect(contours[boundingCountorIndex])
 
-        # Use for report!
-        # print(len(contours))
-        # cv2.drawContours(self.img, contours, -1, (0, 255, 0), 2)
+        # # Use for report!
+        # # print(len(contours))
+        # # cv2.drawContours(self.img, contours, -1, (0, 255, 0), 2)
 
-        # Crop the image
-        self.img = self.img[y:y + h, x:x + w]
+        # # Crop the image
+        # self.img = self.img[y:y + h, x:x + w]
 
         # Get size of each block
         edges = cv2.Canny(self.img, 100, 200)
@@ -295,6 +295,7 @@ class ImageDecoder:
         x, y, w, h = cv2.boundingRect(medianContour)
         width = w - 1
         # numBlocks = self.img.shape[0] // width
+        width = self.img.shape[1] // (self.size + 2)
         numBlocks = self.size + 2
         
         # Visualize the median contour - USE FOR REPORT
