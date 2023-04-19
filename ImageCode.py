@@ -65,10 +65,17 @@ class ImageCoder:
     def generateCode(self):
         width = self.blockWidth
         height = self.blockHeight
-    
-        # Convert letter to UTF-8 integer
+
+        integers = []
         x, y = 0, 0
-        integers = [ord(letter) for letter in self.content]
+
+        # If content an array, skip this step
+        if (type(self.content) == str):
+            # Convert letter to UTF-8 integer
+            integers = [ord(letter) for letter in self.content]
+        else:
+            integers = self.content
+            
         print("Integers Before Padding:", integers)
 
         # Last integer is the length of the message. After that, pad with 0s until the end of the grid with error correction bytes
@@ -182,6 +189,9 @@ class ImageCoder:
         # Show the image
         plt.imshow(img, cmap='gray')
         plt.show()
+
+        # Make the image color
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
 
         # Save the image
         cv2.imwrite(filename, img)

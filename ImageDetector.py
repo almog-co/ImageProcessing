@@ -40,6 +40,8 @@ def detectCode(filename):
 
     # For report!
     # cv2.drawContours(img, contours, -1, (0, 255, 0), 3)
+    # cv2.imshow("Contours", img)
+    # cv2.waitKey(0)
 
     # Get the corners of the innermost contour
     corners = cv2.approxPolyDP(contours[2], 0.01 * cv2.arcLength(contours[2], True), True)

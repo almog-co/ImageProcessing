@@ -80,10 +80,16 @@ class ImageCoder:
     def generateCode(self):
         width = self.blockWidth
         height = self.blockHeight
-    
-        # Convert letter to UTF-8 integer
+
+        # If content an array, skip this step
+        integers = None
+        if (type(self.content) == str):
+            # Convert letter to UTF-8 integer
+            integers = [ord(letter) for letter in self.content]
+        else:
+            integers = self.content
+
         x, y = 0, 0
-        integers = [ord(letter) for letter in self.content]
         print("Integers Before Padding:", integers)
 
         # Last integer is the length of the message. After that, pad with 0s until the end of the grid with error correction bytes
