@@ -76,14 +76,14 @@ class ImageCoder:
         else:
             integers = self.content
             
-        print("Integers Before Padding:", integers)
+        # print("Integers Before Padding:", integers)
 
         # Last integer is the length of the message. After that, pad with 0s until the end of the grid with error correction bytes
         integers.append(len(self.content))
         while (len(integers) + self.errorCorrectionBytes < self.maximumAvailableBytes):
             integers.append(0)
         
-        print("Integers After Padding:", integers)
+        # print("Integers After Padding:", integers)
       
         # Add error correction bytes
         integers = RS.encode(integers, self.errorCorrectionBytes, intArray=True)
@@ -178,7 +178,7 @@ class ImageCoder:
             for column in range(img_width):
                 img[row, column] = self.grid[row // self.pixelsPerBlock, column // self.pixelsPerBlock] * 255
             
-        print("Image Shape:", img.shape)
+        # print("Image Shape:", img.shape)
         
         # Flip black and white
         img = 255 - img
@@ -187,8 +187,8 @@ class ImageCoder:
         img = self.generateBorders(img)
         
         # Show the image
-        plt.imshow(img, cmap='gray')
-        plt.show()
+        # plt.imshow(img, cmap='gray')
+        # plt.show()
 
         # Make the image color
         img = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
@@ -214,7 +214,10 @@ class ImageDecoder:
 
         # Parse image from left to right
         self.grid = np.zeros((size, size), dtype=int)
-        self.parseImage()
+        self.decodedData = self.parseImage()
+    
+    def __str__(self):
+        return self.decodedData
     
     def drawCubeFromCenter(self, img, row, col, size):
         """
@@ -311,8 +314,8 @@ class ImageDecoder:
         # Visualize the median contour - USE FOR REPORT
         # cv2.drawContours(self.img, [medianContour], -1, (0, 255, 0), 2)
 
-        print("Block size:", width)
-        print("Number of blocks:", numBlocks)
+        # print("Block size:", width)
+        # print("Number of blocks:", numBlocks)
 
         # Starts at 1 to skip the border. Go to middle of each block
         data = np.zeros((numBlocks - 2, numBlocks - 2), dtype=int)
@@ -343,8 +346,8 @@ class ImageDecoder:
         decodedData = "".join(map(chr, decodedData))
 
         # print(data)
-        print(decodedData)
+        return decodedData
 
         # Show the image
-        plt.imshow(self.img)
-        plt.show()
+        # plt.imshow(self.img)
+        # plt.show()

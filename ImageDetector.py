@@ -43,13 +43,16 @@ def detectCode(filename):
     # cv2.imshow("Contours", img)
     # cv2.waitKey(0)
 
+    # Get the smallest contour
+    contours = sorted(contours, key=cv2.contourArea)
+
     # Get the corners of the innermost contour
-    corners = cv2.approxPolyDP(contours[2], 0.01 * cv2.arcLength(contours[2], True), True)
+    corners = cv2.approxPolyDP(contours[0], 0.01 * cv2.arcLength(contours[0], True), True)
     # print(corners)
 
     # Plot the corners. For report!
-    # for corner in corners:
-    #     cv2.circle(img, (corner[0][0], corner[0][1]), 5, (0, 255, 0), -1)
+    for corner in corners:
+        cv2.circle(img, (corner[0][0], corner[0][1]), 5, (0, 255, 0), -1)
     
     fixedCorners = []
     for corner in corners:
