@@ -5,8 +5,15 @@ from matplotlib import pyplot as plt
 def detectCode(filename):
     img = cv2.imread(filename)
 
-    # Reduce resolution
-    img = cv2.resize(img, (0,0), fx=0.25, fy=0.25)
+    # Reduce resolution of image such that it is less than 1000x1000
+    while(1):
+        if img.shape[0] * img.shape[1] > 1000 * 1000:
+            img = cv2.resize(img, (0,0), fx=0.75, fy=0.75)
+        else:
+            break
+    
+    # Contrast stretch the image
+    img = contrastStretch(img)
 
     # Convert to grayscale
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -28,7 +35,10 @@ def detectCode(filename):
                 contours.pop(i)
                 end = False
                 break
-            
+    
+    # Remove contours with more than 4 corners
+    contours = [c for c in contours if len(cv2.approxPolyDP(c, 0.01 * cv2.arcLength(c, True), True)) == 4]
+
     # Find the contours where there are 3 contours where area is increasing by at most 10% between contours
     contours = sorted(contours, key=cv2.contourArea, reverse=True)
     startIndex = 0
@@ -51,8 +61,9 @@ def detectCode(filename):
     # print(corners)
 
     # Plot the corners. For report!
-    for corner in corners:
-        cv2.circle(img, (corner[0][0], corner[0][1]), 5, (0, 255, 0), -1)
+    # for corner in corners:
+    #     cv2.circle(img, (corner[0][0], corner[0][1]), 5, (0, 255, 0), -1)
+    # cv2.imshow("Corners", img)
     
     fixedCorners = []
     for corner in corners:
@@ -148,3 +159,36 @@ def detectCode(filename):
     #plt.imshow(img, cmap = 'gray')
     #plt.show()
     return img
+
+def contrastStretch(img, percent=20):
+        """
+        Contrast stretches the image.
+        """
+
+        # Find top and bottom percentiles for each channel
+        top = [
+            np.percentile(img[:, :, 0], 100 - percent), # Red
+            np.percentile(img[:, :, 1], 100 - percent), # Green
+            np.percentile(img[:, :, 2], 100 - percent)  # Blue
+        ]
+
+        bottom = [
+            np.percentile(img[:, :, 0], percent), # Red
+            np.percentile(img[:, :, 1], percent), # Green
+            np.percentile(img[:, :, 2], percent)  # Blue
+        ]
+
+        # cv2.imshow("Normal Image", img)
+        # cv2.waitKey(0)
+
+        # Linearly stretch the image
+        for channel in range(3):
+            img[:, :, channel] = np.clip((img[:, :, channel] - bottom[channel]) / (top[channel] - bottom[channel]), 0, 1) * 255
+
+        # print("Top:", top)
+        # print("Bottom:", bottom)
+
+        # cv2.imshow("Contrast Stretched Image", img)
+        # cv2.waitKey(0)
+        
+        return img
