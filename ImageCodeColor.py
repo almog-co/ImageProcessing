@@ -169,6 +169,8 @@ class ImageCoder:
 
         # Save the image
         cv2.imwrite(filename, img)
+
+        return img
         
 class ImageDecoder:
     def __init__(self, imgFile, size=SIZE, pixelsPerBlock=PIXELS_PER_BLOCK, blockWidth=BLOCK_WIDTH, blockHeight=BLOCK_HEIGHT, errorCorrectionBytes=ERROR_CORRECTION_BYTES):
