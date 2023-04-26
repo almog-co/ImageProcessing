@@ -56,6 +56,9 @@ def detectCode(filename):
     # Get the smallest contour
     contours = sorted(contours, key=cv2.contourArea)
 
+    if (len(contours) == 0):
+        return None
+
     # Get the corners of the innermost contour
     corners = cv2.approxPolyDP(contours[0], 0.01 * cv2.arcLength(contours[0], True), True)
     # print(corners)
@@ -132,10 +135,6 @@ def detectCode(filename):
 
     # Apply transform to each pixel using imwarp with bilinear interpolation
     img = cv2.warpPerspective(img, M, (360, 360), flags=cv2.INTER_LINEAR)
-
-
-
-    
 
     # Run hough transform to find horizontal lines
     # edges = cv2.Canny(gray, 100, 200)

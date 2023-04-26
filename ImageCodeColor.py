@@ -349,7 +349,7 @@ class ImageDecoder:
 
         if (decodedData == None):
             print("ERROR: Could not decode data!")
-            return
+            return ""
         
         # Start from end of decoded data and remove padding
         while (decodedData[-1] == 0):
