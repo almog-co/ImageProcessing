@@ -10,14 +10,14 @@ from matplotlib import pyplot as plt
 
 # decode = Decode("imgs/helloworldcolorerror.png")
 
-# img = detectCode("imgs/helloworldside.png")
-# decode = DecodeBW(img)
-# print(decode)
+img = detectCode("imgs/helloworldside.png")
+decode = DecodeBW(img)
+print(decode)
 
 # code = CodeBW("Hello World!!!")
 # code = Code("Hello World Color Version! I can fit much more")
 # code.generateImage()
 
-img = detectCode("imgs/helloworldside3.jpg")
+img = detectCode("tests/helloworld_bw_test.png")
 decode = DecodeBW(img)
 print(decode)

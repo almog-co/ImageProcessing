@@ -9,18 +9,21 @@ BLOCK_HEIGHT = 2
 ERROR_CORRECTION_BYTES = 16
 SIZE = 16
 
+# OpenCV uses BGR instead of RGB. Why? Who knows.
+# Did this take me way too long to figure out? Yes.
+# Will I ever remember this? Probably not.
 COLOR_MAPPING = {
     0: (255, 255, 255), # White
     1: (0, 0, 0),       # Black
-    2: (255, 0, 0),     # Red
-    3: (0, 0, 255),     # Blue
+    2: (0, 0, 255),     # Red
+    3: (0, 255, 0),     # Green
 }
 
 COLOR_MAPPING_LABELS = {
     "White": 0,
     "Black": 1,
     "Red": 2,
-    "Blue": 3,
+    "Green": 3,
 }
 
 class ImageCoder:
@@ -90,14 +93,14 @@ class ImageCoder:
             integers = self.content
 
         x, y = 0, 0
-        print("Integers Before Padding:", integers)
+        # print("Integers Before Padding:", integers)
 
         # Last integer is the length of the message. After that, pad with 0s until the end of the grid with error correction bytes
         integers.append(len(self.content))
         while (len(integers) + self.errorCorrectionBytes < self.maximumAvailableBytes):
             integers.append(0)
         
-        print("Integers After Padding:", integers)
+        # print("Integers After Padding:", integers)
       
         # Add error correction bytes
         integers = RS.encode(integers, self.errorCorrectionBytes, intArray=True)
@@ -155,21 +158,21 @@ class ImageCoder:
 
         img = self.increaseImageSize(self.grid, factor=self.pixelsPerBlock)
         
-        print("Image Shape:", img.shape)
+        # print("Image Shape:", img.shape)
         
         # Generate border
         img = self.generateBorders(img)
         
         # Show the image
-        plt.imshow(img)
-        plt.show()
+        # plt.imshow(img)
+        # plt.show()
 
         # Save the image
         cv2.imwrite(filename, img)
         
 class ImageDecoder:
     def __init__(self, imgFile, size=SIZE, pixelsPerBlock=PIXELS_PER_BLOCK, blockWidth=BLOCK_WIDTH, blockHeight=BLOCK_HEIGHT, errorCorrectionBytes=ERROR_CORRECTION_BYTES):
-        img = cv2.imread(imgFile)
+        img = imgFile
 
         # Check if image is valid
         if (img is None):
@@ -185,14 +188,17 @@ class ImageDecoder:
 
         # Parse image from left to right
         self.grid = np.zeros((size, size), dtype=int)
-        self.parseImage()
+        self.decodedData = self.parseImage()
     
+    def __str__(self):
+        return self.decodedData
+
     def drawCubeFromCenter(self, img, row, col, size):
         """
         Draws bright green cube from the center of the point (row, col) with size=size.
         """
         half_size = size // 2
-        img[row - half_size:row + half_size, col - half_size:col + half_size] = (0, 255, 0)
+        img[row - half_size:row + half_size, col - half_size:col + half_size] = (255, 0, 0)
     
     def getCubeFromCenter(self, img, row, col, size):
         """
@@ -250,36 +256,36 @@ class ImageDecoder:
         """
         Parses the image from left to right and top to bottom.
         """
-        img_width = self.img.shape[1]
-        img_height = self.img.shape[0]
+        # img_width = self.img.shape[1]
+        # img_height = self.img.shape[0]
 
-        # Run edge detection 
-        edges = cv2.Canny(self.img, 100, 200)
+        # # Run edge detection 
+        # edges = cv2.Canny(self.img, 100, 200)
 
-        # Find contours
-        contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        # # Find contours
+        # contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        # Sort contours by area. Find index where there is a big jump in area
-        delta = 0
-        boundingCountorIndex = None
-        contours = sorted(contours, key=cv2.contourArea, reverse=True)
-        for i in range(len(contours) - 1):
-            if (cv2.contourArea(contours[i]) == 0):
-                continue
-            delta = (cv2.contourArea(contours[i]) - cv2.contourArea(contours[i + 1])) / cv2.contourArea(contours[i])
-            if (delta > 0.5):
-                boundingCountorIndex = i
-                break
+        # # Sort contours by area. Find index where there is a big jump in area
+        # delta = 0
+        # boundingCountorIndex = None
+        # contours = sorted(contours, key=cv2.contourArea, reverse=True)
+        # for i in range(len(contours) - 1):
+        #     if (cv2.contourArea(contours[i]) == 0):
+        #         continue
+        #     delta = (cv2.contourArea(contours[i]) - cv2.contourArea(contours[i + 1])) / cv2.contourArea(contours[i])
+        #     if (delta > 0.5):
+        #         boundingCountorIndex = i
+        #         break
         
-        # Get the bounding box of the contour
-        x, y, w, h = cv2.boundingRect(contours[boundingCountorIndex])
+        # # Get the bounding box of the contour
+        # x, y, w, h = cv2.boundingRect(contours[boundingCountorIndex])
 
-        # Use for report!
-        # print(len(contours))
-        # cv2.drawContours(self.img, contours, -1, (0, 255, 0), 2)
+        # # Use for report!
+        # # print(len(contours))
+        # # cv2.drawContours(self.img, contours, -1, (0, 255, 0), 2)
 
-        # Crop the image
-        self.img = self.img[y:y + h, x:x + w]
+        # # Crop the image
+        # self.img = self.img[y:y + h, x:x + w]
 
         # Get size of each block
         edges = cv2.Canny(self.img, 100, 200)
@@ -291,12 +297,12 @@ class ImageDecoder:
         width = w - 1
         # numBlocks = self.img.shape[0] // width
         numBlocks = self.size + 2
+        width = 20
         
         # Visualize the median contour - USE FOR REPORT
         # cv2.drawContours(self.img, [medianContour], -1, (0, 255, 0), 2)
-
-        print("Block size:", width)
-        print("Number of blocks:", numBlocks)
+        # print("Block size:", width)
+        # print("Number of blocks:", numBlocks)
 
         # Starts at 1 to skip the border. Go to middle of each block
         data = np.zeros((numBlocks - 2, numBlocks - 2), dtype=int)
@@ -315,23 +321,27 @@ class ImageDecoder:
                     data[i, j] = COLOR_MAPPING_LABELS["Black"]
 
                 # If red is above 128, then it is red
-                elif (median[0] > 128):
+                elif (median[2] > 128):
                     data[i, j] = COLOR_MAPPING_LABELS["Red"]
 
-                # If blue is above 128, then it is blue
-                elif (median[2] > 128):
-                    data[i, j] = COLOR_MAPPING_LABELS["Blue"]
+                # If green is above 128, then it is Green
+                elif (median[1] > 128):
+                    data[i, j] = COLOR_MAPPING_LABELS["Green"]
 
                 else:
                     data[i, j] = 0
-                    print("ERROR: Unknown color!")
+                    print("ERROR: Unknown color!", median)
                 
                 # Use for report!
-                self.drawCubeFromCenter(self.img, row, col, 5)
+                # self.drawCubeFromCenter(self.img, row, col, 5)
 
                 col += width
             col = int(1.5 * width)
             row += width
+        
+        # Show the image
+        # cv2.imshow("Image", self.img)
+        # cv2.waitKey(0)
         
         # Decode the data
         integerData = self.decodeDataArray(data)
@@ -339,7 +349,7 @@ class ImageDecoder:
 
         if (decodedData == None):
             print("ERROR: Could not decode data!")
-            return
+            return ""
         
         # Start from end of decoded data and remove padding
         while (decodedData[-1] == 0):
@@ -350,8 +360,8 @@ class ImageDecoder:
         decodedData = "".join(map(chr, decodedData))
 
         # print(data)
-        print(decodedData)
+        return decodedData
 
-        # Show the image
-        plt.imshow(self.img)
-        plt.show()
+        # # Show the image
+        # plt.imshow(self.img)
+        # plt.show()
