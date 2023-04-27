@@ -20,7 +20,7 @@ text = args.text
 verbose = args.verbose
 output = args.output
 
-code = Code(text)
+code = Code(text, verbose=verbose)
 img = code.generateImage(filename=output)
 
 if (verbose):

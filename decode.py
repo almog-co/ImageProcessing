@@ -16,16 +16,17 @@ args = parser.parse_args()
 filename = args.filename
 verbose = args.verbose
 
-img = detectCode(filename)
+img = detectCode(filename, verbose=verbose)
 if (img is None):
     print("No code found!")
     exit()
 
 if (verbose):
+    print("Size of image: " + str(img.shape))
     cv2.imshow("Cropped Code", img)
     cv2.waitKey(1)
 
-decode = Decode(img)
+decode = Decode(img, verbose=verbose)
 if (str(decode) == ""):
     print("Unable to decode!")
 else:
@@ -33,6 +34,7 @@ else:
     print(decode)
 
 # Wait until the user presses a key to exit
-cv2.waitKey(0)
+if (verbose):
+    cv2.waitKey(0)
 
 

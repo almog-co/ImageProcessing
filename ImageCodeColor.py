@@ -27,7 +27,7 @@ COLOR_MAPPING_LABELS = {
 }
 
 class ImageCoder:
-    def __init__(self, content="", size=SIZE, pixelsPerBlock=PIXELS_PER_BLOCK, blockWidth=BLOCK_WIDTH, blockHeight=BLOCK_HEIGHT, errorCorrectionBytes=ERROR_CORRECTION_BYTES):
+    def __init__(self, content="", size=SIZE, pixelsPerBlock=PIXELS_PER_BLOCK, blockWidth=BLOCK_WIDTH, blockHeight=BLOCK_HEIGHT, errorCorrectionBytes=ERROR_CORRECTION_BYTES, verbose=False):
         self.grid = np.zeros((size, size, 3), dtype=int)
         self.pixelsPerBlock = pixelsPerBlock
         self.size = size
@@ -37,6 +37,7 @@ class ImageCoder:
         self.errorCorrectionBytes = errorCorrectionBytes
         self.maximumAvailableBytes= (size * size) // (blockWidth * blockHeight)
         self.maximumMessageLength = self.maximumAvailableBytes - self.errorCorrectionBytes - 1
+        self.verbose = verbose
         
         if (len(content) > self.maximumMessageLength):
             print("Content is too long for the grid size! Must be less than", self.maximumMessageLength, "bytes.")
@@ -93,18 +94,23 @@ class ImageCoder:
             integers = self.content
 
         x, y = 0, 0
-        # print("Integers Before Padding:", integers)
+        if (self.verbose):
+            print("Bytes Before Padding:", integers)
 
         # Last integer is the length of the message. After that, pad with 0s until the end of the grid with error correction bytes
         integers.append(len(self.content))
         while (len(integers) + self.errorCorrectionBytes < self.maximumAvailableBytes):
             integers.append(0)
         
-        # print("Integers After Padding:", integers)
+        if (self.verbose):
+            print("Integers After Padding:", integers)
       
         # Add error correction bytes
         integers = RS.encode(integers, self.errorCorrectionBytes, intArray=True)
         
+        if (self.verbose):
+            print("Integers After Error Correction:", integers)
+
         # Segment grid into height x width blocks which will store the base 4 representation of the UTF-8 integer
         for integer in integers:
             block = self.generateBlock(integer)
@@ -173,7 +179,7 @@ class ImageCoder:
         return img
         
 class ImageDecoder:
-    def __init__(self, imgFile, size=SIZE, pixelsPerBlock=PIXELS_PER_BLOCK, blockWidth=BLOCK_WIDTH, blockHeight=BLOCK_HEIGHT, errorCorrectionBytes=ERROR_CORRECTION_BYTES):
+    def __init__(self, imgFile, size=SIZE, pixelsPerBlock=PIXELS_PER_BLOCK, blockWidth=BLOCK_WIDTH, blockHeight=BLOCK_HEIGHT, errorCorrectionBytes=ERROR_CORRECTION_BYTES, verbose=False):
         img = imgFile
 
         # Check if image is valid
@@ -187,6 +193,7 @@ class ImageDecoder:
         self.blockWidth = blockWidth
         self.blockHeight = blockHeight
         self.errorCorrectionBytes = errorCorrectionBytes
+        self.verbose = verbose
 
         # Parse image from left to right
         self.grid = np.zeros((size, size), dtype=int)
@@ -292,6 +299,13 @@ class ImageDecoder:
         # Get size of each block
         edges = cv2.Canny(self.img, 100, 200)
         contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+        if (self.verbose):
+            img2 = self.img.copy()
+            cv2.drawContours(img2, contours, -1, (0, 255, 0), 2)
+            cv2.namedWindow("Contours", cv2.WINDOW_NORMAL)
+            cv2.imshow("Contours", img2)
+
         contours = [contour for contour in contours if abs(cv2.boundingRect(contour)[2] - cv2.boundingRect(contour)[3]) < 2]
         contours = sorted(contours, key=cv2.contourArea, reverse=True)
         medianContour = contours[len(contours) // 2]
@@ -300,15 +314,20 @@ class ImageDecoder:
         # numBlocks = self.img.shape[0] // width
         numBlocks = self.size + 2
         width = 20
-        
+
         # Visualize the median contour - USE FOR REPORT
-        # cv2.drawContours(self.img, [medianContour], -1, (0, 255, 0), 2)
-        # print("Block size:", width)
-        # print("Number of blocks:", numBlocks)
+        if (self.verbose):
+            img2 = self.img.copy()
+            cv2.drawContours(img2, [medianContour], -1, (0, 255, 0), 2)
+            cv2.namedWindow("Median Contour", cv2.WINDOW_NORMAL)
+            cv2.imshow("Median Contour", img2)
+            print("Block size:", width)
+            print("Number of blocks:", numBlocks)
 
         # Starts at 1 to skip the border. Go to middle of each block
         data = np.zeros((numBlocks - 2, numBlocks - 2), dtype=int)
         row, col = int(1.5 * width), int(1.5 * width)
+        img2 = self.img.copy()
         for i in range(numBlocks - 2):
             for j in range(numBlocks - 2):
                 # Get median color of the 5x5 block from (row, col)
@@ -335,15 +354,17 @@ class ImageDecoder:
                     print("ERROR: Unknown color!", median)
                 
                 # Use for report!
-                # self.drawCubeFromCenter(self.img, row, col, 5)
+                if (self.verbose):
+                    self.drawCubeFromCenter(img2, row, col, 5)
 
                 col += width
             col = int(1.5 * width)
             row += width
         
         # Show the image
-        # cv2.imshow("Image", self.img)
-        # cv2.waitKey(0)
+        if (self.verbose):
+            cv2.namedWindow("Cube", cv2.WINDOW_NORMAL)
+            cv2.imshow("Cube", img2)
         
         # Decode the data
         integerData = self.decodeDataArray(data)

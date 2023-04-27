@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from matplotlib import pyplot as plt
 
-def detectCode(filename):
+def detectCode(filename, verbose=False):
     img = cv2.imread(filename)
 
     # Reduce resolution of image such that it is less than 1000x1000
@@ -15,12 +15,20 @@ def detectCode(filename):
     # Contrast stretch the image
     img = contrastStretch(img)
 
+    if (verbose):
+        cv2.namedWindow("Contrast Stretched", cv2.WINDOW_NORMAL)
+        cv2.imshow("Contrast Stretched", img)
+
     # Convert to grayscale
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
     # Run canny to find edges then bounding box
     edges = cv2.Canny(gray, 100, 200)
     contours, hierarchy = cv2.findContours(edges, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+
+    if (verbose):
+        cv2.namedWindow("Edges", cv2.WINDOW_NORMAL)
+        cv2.imshow("Edges", edges)
 
     # Filter out contours that are too small
     contours = [c for c in contours if cv2.contourArea(c) > 5000]
@@ -49,9 +57,12 @@ def detectCode(filename):
     contours = contours[startIndex:startIndex+3]
 
     # For report!
-    # cv2.drawContours(img, contours, -1, (0, 255, 0), 3)
-    # cv2.imshow("Contours", img)
-    # cv2.waitKey(0)
+    if (verbose):
+        # Duplicate the image
+        img2 = img.copy()
+        cv2.drawContours(img2, contours, -1, (0, 255, 0), 3)
+        cv2.namedWindow("Contours", cv2.WINDOW_NORMAL)
+        cv2.imshow("Contours", img2)
 
     # Get the smallest contour
     contours = sorted(contours, key=cv2.contourArea)
@@ -62,6 +73,13 @@ def detectCode(filename):
     # Get the corners of the innermost contour
     corners = cv2.approxPolyDP(contours[0], 0.01 * cv2.arcLength(contours[0], True), True)
     # print(corners)
+
+    if (verbose):
+        # Duplicate the image
+        img2 = img.copy()
+        cv2.drawContours(img2, contours, -1, (0, 255, 0), 3)
+        cv2.namedWindow("Final Contour", cv2.WINDOW_NORMAL)
+        cv2.imshow("Final Contour", img2)
 
     # Plot the corners. For report!
     # for corner in corners:
