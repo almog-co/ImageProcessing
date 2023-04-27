@@ -15,7 +15,7 @@ Repo for Image Processing Final Project
 ## Usage
 For demo purposes there are two files I recommend using to directly interact with the color codes. `decoding.py` and `encoding.py` but feel free to look around.
 
-**I include a built-in sample image called `colorsample.png`**. Feel free to use this one for a quick demo or upload your own!
+**I include a built-in sample image called `colorsample.jpg`**. Feel free to use this one for a quick demo or upload your own!
 
 ### Decoding
 For decoding color codes, run 
