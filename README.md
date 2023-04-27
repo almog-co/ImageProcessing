@@ -1,5 +1,5 @@
 # ImageProcessing
-Repo for ImageProcessing Barcode Project
+Repo for Image Processing Final Project
 
 ## Installation
 1. Clone the repo `https://github.com/almog-co/ImageProcessing.git` into a directory on your computer and navigate to it.
@@ -15,7 +15,7 @@ Repo for ImageProcessing Barcode Project
 ## Usage
 For demo purposes there are two files I recommend using to directly interact with the color codes. `decoding.py` and `encoding.py` but feel free to look around.
 
-**I include a built-in sample image called `colorsample.png`**. Feel free to use this one for a quick demo or upload your own!
+**I include a built-in sample image called `colorsample.jpg`**. Feel free to use this one for a quick demo or upload your own!
 
 ### Decoding
 For decoding color codes, run 
@@ -36,3 +36,5 @@ Like before, you can add `-v` or `--verbose` to see the intermediate results. Yo
 ```
 python3 encode.py "Hello World Color Version!!!" -v -o helloworld.png 
 ```
+
+**Please note that using verbose mode will spawn a lot of CV2 windows. Hit `q` on your keyboard on any of them to quit the program!**
