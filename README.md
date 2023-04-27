@@ -1,5 +1,5 @@
 # ImageProcessing
-Repo for ImageProcessing Barcode Project
+Repo for Image Processing Final Project
 
 ## Installation
 1. Clone the repo `https://github.com/almog-co/ImageProcessing.git` into a directory on your computer and navigate to it.
@@ -36,3 +36,5 @@ Like before, you can add `-v` or `--verbose` to see the intermediate results. Yo
 ```
 python3 encode.py "Hello World Color Version!!!" -v -o helloworld.png 
 ```
+
+**Please note that using verbose mode will spawn a lot of CV2 windows. Hit `q` on your keyboard on any of them to quit the program!**
